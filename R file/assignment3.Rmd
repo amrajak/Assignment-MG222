@@ -1,0 +1,289 @@
+---
+title: 'MG222: Assignment 3'
+output:
+  html_document:
+    df_print: paged
+---
+                                                   MG222: Assignmnt 3  
+                                                
+                                        
+The text file in [Data][http://mgmt.iisc.ac.in/CM/MG222/Data_Files/exchange_rate.data] Files/exchange rate.data contains weekly USD-INR rates (value of 1 USD in INR) starting from the first week of January 2001 till the last week of December 2017. It gives the Date, Price, Open, High, Low and percentage Change in this exchange rate, starting from recent to the past. This assignment is concerned only with the Price series.                                                
+```{r}
+##  Required Library 
+library(dplyr)
+library(car)
+library(corrplot)
+library(MASS)
+library(lmtest)  
+```
+```{r}
+
+library("tseries")
+
+library("forecast")
+``` 
+                                            (Load Data from text file)
+                            Exchange rate data file  : date,price,open,high,low,changeP  
+```{r}
+options(warn=-1)
+##   Get Data : "http://mgmt.iisc.ac.in/CM/MG222/Data_Files/exchange_rate.data"
+##   Exchange rate data file: Date,Price,Open,High,Low,Change %
+data <- read.table("C:/Users/Akanksha/Documents/R Files/MG222/data3.txt", header = TRUE, sep = ",")  ## Read 
+d<-c(887:1) #order data
+data<-data[d,]
+date <- data$Date
+price <- data$Price
+open <- data$Open
+high <- data$High
+low <- data$Low
+changeP <- data$Change
+data
+```
+```{r}
+
+library("readr")
+# Writing mtcars data to a tsv file
+write_tsv(data, path = "C:/Users/Akanksha/Documents/R Files/MG222/column.txt")
+
+```
+Part 1: First provide a verbal description of the evolution of the weekly Price series during this period, based on its time series plot.
+```{r}
+plot( price, type="l", col="green" )
+
+```
+1. non stationary
+2. 
+
+```{r}
+min(price)
+date[358]
+```
+![Alt text](C:/Users/Akanksha/Documents/R Files/MG222/price.png)
+
+Part 2: Next select an ARIMA model of an appropriate order, for the weekly log-Price series.You must clearly state your reasons (showing only the necessary details, but in a systematic step-by-step fashion), for selecting the model, by comparing it with a few of its neighboring competitors, if necessary. How well does the model finally selected, satisfy the model assumptions?
+```{r}
+logPrice<-log(price)
+plot( price, type="l", col="red" )
+plot( logPrice, type="l", col="red" )
+par(mfrow = c(1, 2))
+acf(logPrice)
+pacf(logPrice)
+adf.test(logPrice)
+pp.test(logPrice)
+kpss.test(logPrice)
+
+par(mfrow = c(1, 2))
+acf(price)
+pacf(price)
+
+adf.test(diff(logPrice))
+pp.test(diff(logPrice))
+kpss.test(diff(logPrice))
+par(mfrow = c(1, 2))
+acf(diff(logPrice))
+pacf(diff(logPrice))
+```
+```{r}
+Box.test(diff(logPrice),lag=30)
+Box.test(diff(logPrice),lag=30,type="L")
+```
+```{r}
+arma_aics<-function(x,P,d,Q)
+ {
+ aics<-matrix(nrow=P+1,ncol=Q+1)
+ for(p in 0:P)
+ for(q in 0:Q)
+ {
+ mdl<-arima(x,order=c(p,d,q),method = "ML")
+ if( mdl$code==0 ) aics[p+1,q+1]<-mdl$aic
+ }
+ return(aics)
+}
+ aic10<-arma_aics(logPrice,10,1,10)
+ aic10
+```
+arima(6,1,2), aic value= -5883.794
+
+```{r}
+sort(aic10)
+
+```
+      
+      
+```{r}
+aic9<-arma_aics(logPrice,9,1,9)
+ aic9
+```
+```{r}
+s9<-sort(aic9)
+s9
+```
+1. arima(6,1,2)
+2. arima(5,1,2)
+3. arima(2,1,5)
+4. arima(3,1,3)
+5. arima(0,1,2)
+6. arima(3,1,5)
+7. arima(5,1,3)
+```{r}
+m6_2<-arima(logPrice,order=c(6,1,2),method = "ML")
+m5_2<-arima(logPrice,order=c(5,1,2),method = "ML")
+m2_5<-arima(logPrice,order=c(2,1,5),method = "ML")
+m3_3<-arima(logPrice,order=c(3,1,3),method = "ML")
+m0_2<-arima(logPrice,order=c(0,1,2),method = "ML")
+m3_5<-arima(logPrice,order=c(3,1,5),method = "ML")
+m3_3<-arima(logPrice,order=c(5,1,3),method = "ML")
+m6_2
+m5_2
+m2_5
+m3_3
+m0_2
+m3_5
+m5_3
+```
+arima(6,1,2)
+                                                         Model 1
+```{r}
+m6_2
+arima(logPrice,order=c(6,1,2),method = "ML",fixed=c(NA,NA,NA,0,0,0, NA,NA))
+```
+                                                model 2
+```{r}
+m5_2
+arima(logPrice,order=c(5,1,2),method = "ML",fixed=c(0,NA,NA,NA,0,NA, NA))
+```
+                                                  model 3
+```{r}
+m2_5
+arima(logPrice,order=c(2,1,5),method = "ML",fixed=c(NA,NA,NA,NA,NA,NA,0))
+```
+                                                  model 4
+```{r}
+m3_3
+```
+                                                  model 5
+```{r}
+m0_2
+```
+                                                  model 6
+```{r}
+m3_5
+arima(logPrice,order=c(3,1,5),method = "ML",fixed=c(0,NA,0,0,NA,0,0,0))
+```
+                                                  model 7
+```{r}
+m5_3
+```
+
+For now selected model is model 5: m0_2
+
+Residual Analysis:
+
+```{r}
+chosen_model<-m0_2
+res<-residuals(chosen_model)
+plot(res)
+qqnorm(res)
+acf(res,ylim=c(-0.1,0.15))
+pacf(res)
+tsdiag(chosen_model)
+normtest(res)
+hist(res)
+acf(res*res)
+pacf(res*res)
+```
+```{r}
+acf(res)
+```
+
+```{r}
+install.packages("normtest")
+library("normtest")
+install.packages("nortest")
+```
+```{r}
+normtest<-function(x)
+{
+  library(nortest)
+  s<-shapiro.test(x)
+  ad<-ad.test(x)
+  cvm<-cvm.test(x)
+  ll<-lillie.test(x)
+  sf<-sf.test(x)
+  df<-data.frame(Method=c(s$method, ad$method, cvm$method, ll$method, sf$method),
+                 P.Value=c(s$p.value, ad$p.value, cvm$p.value, ll$p.value, sf$p.value))
+  df
+}
+normtest(res)
+Box.test(res,lag=20)
+Box.test(res,type="L",lag=20)
+
+
+```
+```{r}
+normtest(res*res)
+Box.test(res^2 ,lag=20)
+Box.test(res^2 ,type="L",lag=20)
+
+```
+```{r}
+ts_d1=diff(logPrice, differences=1)
+adfd1<- adf.test(ts_d1)
+adfd1
+Acf(ts_d1)
+Pacf(ts_d1)
+decomp=stl(price, s.window = "periodic")
+deseasonal_ts<-seasadj(decomp)
+plot(decomp)
+```
+
+
+Part 3: Based on the model selected in question 2, plot the IRF of the weekly log-Price series, and with its help, briefly describe the (univariate) dynamics of the evolution of the USD-INR exchange rates. 
+```{r}
+m0_2
+irfplot<-function (irf, s)
+ {
+ n <- length(irf)
+ plot(c(0,n+1), range(c(irf,1)), type = "n",xlab = "Time", ylab = "IRF", main = s)
+ lines(c(0,n+1),c(0,0))
+ lines(c(0,0),c(0,1))
+ for (i in 1:n)
+ lines(c(i,i), c(0, irf[i]))
+ }
+ psi<-ARMAtoMA( ma=c(0.0988,0.0907),
+ lag.max=30)
+ par(mfrow = c(1, 2))
+ #par(oma = c(0, 4, 8, 0))
+ irfplot(psi,"Exchange Rate Return IRF")
+ irfplot(cumsum(psi)+1,"Log-Exchange Rate IRF")
+```
+
+
+Part 4: Based on the model selected in question 2, prepare a table showing the percentage of
+variance of the (continuously compounded) return series, that is both being incrementally and cumulatively explained by its lagged values, up to 5 lags. Based on these values, comment on the intrinsic predictive power of the model.
+```{r}
+ psi100<-ARMAtoMA( ma=c(0.0988,0.0907),lag.max=100)
+ gamma0<-(1+sum(psi100^2))*0.00007623
+ gamma0
+ pc2<-ARMAacf( ma=c(0.0988,0.0907), lag.max=30,pacf=T)^2
+ v<-gamma0
+ for(i in 2:6) v[i]<-v[i-1]*(1-pc2[i-1])
+ v
+((1-v/gamma0)*100)[-1]
+pr<-predict(chosen_model,n.ahead=4)
+pr
+```
+
+
+Part 5: The Price of the USD in the first four weeks of 2018 on 07/01/18, 14/01/18, 21/01/18 and 28/01/18 were observed to be INR 63.61, 63.83, 63.59 and 64.13 respectively. Find the forecasted values and 95% forecast intervals by the model selected in question 2, for these first four weeks of 2018, and comment on the quality of these forecasts.
+```{r}
+ exp(pr$pred)
+ exp(pr$pred-2*pr$se)
+ exp(pr$pred+2*pr$se)
+```
+
+```{r}
+f<-c(63.27961, 63.23594, 63.23594, 63.23594)
+r<-c(63.61, 63.83, 63.59,64.13)
+f-r
+```

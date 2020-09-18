@@ -1,0 +1,842 @@
+---
+title: "Assignment 4"
+output: html_notebook
+---
+akankshamr@iisc.ac.in
+                                                       MG 222: Assignment IV
+                                                      Due Date: June 18, 2020
+                                                      
+
+
+The text file in http://www.mgmt.iisc.ac.in/CM/MG222/Data Files/gdp.data contains time series of Quarterly GDP of India from 1996-97:Q1, to 2013-14:Q2, in 2004-05 prices, split across eight sectors (provided by RBI, and as agreed upon by various other government bodies such as CSO, NSSO, Finance Ministry etc.) as well as the net GDP, in its last nine columns. The column names are self-explanatory and are thus not repeated here. In this class, there are five groups for Assignments purpose. Each one of these groups must choose only one of the following columns for this assignment (analysis of any other column of data will not be accepted), and no two groups must analyse the same time series. The acceptable
+
+columns (as they appear in gdp.data) are as follows.  
+
+Agriculture
+• Manufacturing
+• Trade, Hotels, Transport & Communication
+• Community, Social & Personal Services
+• Gross Domestic Product
+
+                                          Community, Social & Personal Services
+
+
+First leave aside the last four observations of 2012-13:Q3, 2012-13:Q4, 2013-14:Q1 and 2013-14:Q2, while you build the model. These will be used for checking out the quality of the forecasts based on the models you are about to build, and thus must not be used for modelbuilding purpose. That is, your models must be built based on the 66 observations from 1996-97:Q1 to 2012-13:Q2. Answer the following.
+
+
+1. Build a regression model that you deem to be most appropriate for modeling the trend and seasonality present in your chosen time series. Do the residulas of this regression model satisfy all the required assumptions?                                                         [7+3=10]
+
+```{r}
+library("zoo")
+library(dplyr)
+library(car)
+library(corrplot)
+library(MASS)
+library(lmtest) 
+library("tseries")
+library("forecast")
+```
+
+66 observations from 1996-97:Q1 to 2012-13:Q2
+
+Year	Quarter	Agriculture	Mining	Manufacturing	Electricity,Gas&WaterSupply	Construction	Trade,Hotels,Transport&Communication
+Finance,Insurance,RealEstate&BusinessServices	Community,Social&PersonalServices	GrossDomesticProduct
+
+```{r}
+data <- read.table("C:/Users/Akanksha/Documents/R Files/MG222/assignment4data.csv", header = T)  ## Read 
+data
+ts1<-ts(data$Community.Social.PersonalServices)
+ts2<-ts1[1:66]
+tsc=ts(ts2,deltat = 1/4)
+tt=1:70
+t=tt[1:66]
+
+plot(t,tsc,type="n",main="Quarterly GDP of India from 1996-97 to 2012-13",xlab="Time",ylab="Quarterly GDP in Crores of Rs")
+lines(t,tsc)
+points(t,tsc,pch=20)
+legend("topleft", c(" Community,Social&PersonalServices(Observed)","Trend"), lty=c(1,1), col=c('black','blue'), bty='n', cex=1)
+decomposed.tsc<-decompose(tsc)
+lines(t,decomposed.tsc$trend,col='blue',lwd=1.25)
+plot(decomposed.tsc)
+tsc
+```
+```{r}
+
+```
+1. Build a regression model that you deem to be most appropriate for modeling the trend and seasonality present in your chosen time series. Do the residulas of this regression model satisfy all the required assumptions? 
+
+Model 1.  First Regression Model, which is simple linear function of t
+```{r}
+model1<-lm(tsc~t)
+summary(model1)
+par(mfrow = c(1, 2))
+plot(model1,which=1:2)
+res1<-residuals(model1)/sqrt(327.5)
+boxplot(res1)
+
+plot(t,res1)
+lines(lowess(t,res1),col=2)
+
+library(nortest)
+ad.test(sres1)
+cvm.test(sres1)
+lillie.test(sres1)
+pearson.test(sres1)
+sf.test(sres1)
+normtest(res1)
+```
+Model 2: Second Regression Model, which is a quadratic function of t and a linear t
+```{r}
+t1=t*t
+model2<-lm(tsc~t+t1)
+summary(model2)
+plot(model2,which=1:2)
+sres2<-residuals(model2)/sqrt(174.4)
+boxplot(sres2)
+plot(t,sres2)
+lines(lowess(t,sres2),col=2)
+plot(t1,sres2)
+lines(lowess(t1,sres2),col=2)
+library(nortest)
+ad.test(sres2)
+cvm.test(sres2)
+lillie.test(sres2)
+pearson.test(sres2)
+sf.test(sres2)
+normtest(sres2)
+```
+Model 3: Third Regression model,
+```{r}
+model3=lm(log(tsc)~t)
+summary(model3)
+plot(model3)
+sres3<-residuals(model3)/sqrt(0.1337)
+boxplot(sres3)
+plot(t,sres3)
+lines(lowess(t,sres3),col=2)
+library(nortest)
+ad.test(sres2)
+cvm.test(sres2)
+lillie.test(sres2)
+pearson.test(sres2)
+sf.test(sres2)
+```
+```{r}
+model3=lm(log(tsc)~t+t1)
+summary(model3)
+plot(model3)
+sres3<-residuals(model3)/sqrt(0.1337)
+boxplot(sres3)
+plot(t,sres3)
+lines(lowess(t,sres3),col=2)
+library(nortest)
+ad.test(sres2)
+cvm.test(sres2)
+lillie.test(sres2)
+pearson.test(sres2)
+sf.test(sres2)
+normtest(sres2)
+```
+
+
+Model 4: 
+```{r}
+w1=pi;
+t1=t*t
+model4=lm(tsc~t+t1+cos(w1*t)+sin(w1*0.5*t)+t1*sin(w1*0.5*t)+t1*cos(w1*0.5*t))
+summary(model4)
+plot(model4,which=1:2)
+sres4=residuals(model4)/sqrt(138.9)
+boxplot(sres4)
+library(nortest)
+ad.test(sres4)
+cvm.test(sres4)
+lillie.test(sres4)
+pearson.test(sres4)
+sf.test(sres4)
+library(tseries)
+res4=residuals(model4)
+Box.test(res4)
+res4=residuals(model4)
+turning_point.test<-function(x)
+{
+     n<-length(x)
+    turns<-0
+    for(i in 2:(n-1))
+    if((x[i-1]<x[i] && x[i]>x[i+1]) || (x[i-1]>x[i] && x[i]<x[i+1]))
+    turns<-turns+1
+    z<-(turns-2*(n-2)/3)/sqrt((16*n-29)/90)
+    return(list(nturns=turns,z=z,p=2*(1-pnorm(abs(z)))))
+     }
+turning_point.test(res4)
+
+diff_sign.test<-function(x)
+{
+n<-length(x)
+y<-diff(x)
+t<-length(y[y>0])
+z<-(t-(n-1)/2)/sqrt((n+1)/12)
+return(list(t=t,z=z,p=2*(1-pnorm(abs(z)))))
+}
+diff_sign.test(res4)
+
+linear_trend.test<-function(x)
+{
+n<-length(x)
+t<-0
+for(i in 1:(n-1))
+for(j in (i+1):n)
+if(x[j]>x[i]) t<-t+1
+z<-(t-n*(n-1)/4)/sqrt((n*(n-1)*(2*n+5)/72))
+return(list(t=t,z=z,p=2*(1-pnorm(abs(z)))))
+}
+linear_trend.test(res4)
+
+```
+Model 5:
+```{r}
+w1=pi;
+t1=t*t
+model5=lm(tsc~t+t1+cos(w1*t)+cos(w1*0.5*t))
+summary(model5)
+
+model4<-model5
+plot(model4,which=1:2)
+sres4=residuals(model4)/sqrt(143)
+boxplot(sres4)
+library(nortest)
+ad.test(sres4)
+cvm.test(sres4)
+lillie.test(sres4)
+pearson.test(sres4)
+sf.test(sres4)
+library(tseries)
+res4=residuals(model4)
+Box.test(res4)
+res4=residuals(model4)
+turning_point.test<-function(x)
+{
+     n<-length(x)
+    turns<-0
+    for(i in 2:(n-1))
+    if((x[i-1]<x[i] && x[i]>x[i+1]) || (x[i-1]>x[i] && x[i]<x[i+1]))
+    turns<-turns+1
+    z<-(turns-2*(n-2)/3)/sqrt((16*n-29)/90)
+    return(list(nturns=turns,z=z,p=2*(1-pnorm(abs(z)))))
+     }
+turning_point.test(res4)
+
+diff_sign.test<-function(x)
+{
+n<-length(x)
+y<-diff(x)
+t<-length(y[y>0])
+z<-(t-(n-1)/2)/sqrt((n+1)/12)
+return(list(t=t,z=z,p=2*(1-pnorm(abs(z)))))
+}
+diff_sign.test(res4)
+
+linear_trend.test<-function(x)
+{
+n<-length(x)
+t<-0
+for(i in 1:(n-1))
+for(j in (i+1):n)
+if(x[j]>x[i]) t<-t+1
+z<-(t-n*(n-1)/4)/sqrt((n*(n-1)*(2*n+5)/72))
+return(list(t=t,z=z,p=2*(1-pnorm(abs(z)))))
+}
+linear_trend.test(res4)
+```
+```{r}
+t=1:66
+t1=t*t
+w1=pi
+reg_model=lm(tsc~t+t1+cos(w1*t)+cos(w1*0.5*t))
+summary(reg_model)
+plot(model4,which=1:2)
+res=residuals(reg_model)/sqrt(143)  # standard residual
+boxplot(res)
+normtest<-function(x)
+{
+  library(nortest)
+  s<-shapiro.test(x)
+  ad<-ad.test(x)
+  cvm<-cvm.test(x)
+  ll<-lillie.test(x)
+  sf<-sf.test(x)
+  df<-data.frame(Method=c(s$method, ad$method, cvm$method, ll$method, sf$method),
+                 P.Value=c(s$p.value, ad$p.value, cvm$p.value, ll$p.value, sf$p.value))
+  df
+}
+normtest(res)
+Box.test(res,lag=20)
+Box.test(res,type="L",lag=20)
+turning_point.test(res)
+diff_sign.test(res)
+linear_trend.test(res)
+
+irfplot(psi,"IRF")
+irfplot(cumsum(psi)+1,"Log IRF")
+acf(res)
+pacf(res)
+```
+```{r}
+#turning_point.test(res)
+#diff_sign.test(res)
+#linear_trend.test(res)
+#Box.test(res,lag=20,type="L")
+adf.test(diff(tsc,lag=4))$p.value
+pp.test(diff(tsc,lag=4))$p.value
+kpss.test(diff(tsc,lag=4))$p.value  
+```
+
+Model 6:
+```{r}
+w1=pi;
+t1=t*t
+model5=lm((tsc)~t+t1+cos(w1*t)+t1:sin(w1*t))
+summary(model5)
+
+model4<-model5
+plot(model4,which=1:2)
+sres4=residuals(model4)/sqrt(144.6)
+boxplot(sres4)
+library(nortest)
+ad.test(sres4)
+cvm.test(sres4)
+lillie.test(sres4)
+pearson.test(sres4)
+sf.test(sres4)
+library(tseries)
+res4=residuals(model4)
+Box.test(res4)
+res4=residuals(model4)
+turning_point.test<-function(x)
+{
+     n<-length(x)
+    turns<-0
+    for(i in 2:(n-1))
+    if((x[i-1]<x[i] && x[i]>x[i+1]) || (x[i-1]>x[i] && x[i]<x[i+1]))
+    turns<-turns+1
+    z<-(turns-2*(n-2)/3)/sqrt((16*n-29)/90)
+    return(list(nturns=turns,z=z,p=2*(1-pnorm(abs(z)))))
+     }
+turning_point.test(res4)
+
+diff_sign.test<-function(x)
+{
+n<-length(x)
+y<-diff(x)
+t<-length(y[y>0])
+z<-(t-(n-1)/2)/sqrt((n+1)/12)
+return(list(t=t,z=z,p=2*(1-pnorm(abs(z)))))
+}
+diff_sign.test(res4)
+
+linear_trend.test<-function(x)
+{
+n<-length(x)
+t<-0
+for(i in 1:(n-1))
+for(j in (i+1):n)
+if(x[j]>x[i]) t<-t+1
+z<-(t-n*(n-1)/4)/sqrt((n*(n-1)*(2*n+5)/72))
+return(list(t=t,z=z,p=2*(1-pnorm(abs(z)))))
+}
+linear_trend.test(res4)
+```
+
+```{r}
+model1<-lm(tsc~t+t1+cos(w1*t))
+summary(model1)
+plot(model1,which=1:2)
+sres1<-residuals(model1)/sqrt(494.8)
+boxplot(sres1)
+plot(t,sres1)
+lines(lowess(t,sres1),col=2)
+library(nortest)
+ad.test(sres1)
+cvm.test(sres1)
+lillie.test(sres1)
+pearson.test(sres1)
+sf.test(sres1)
+```
+```{r}
+model6<-tslm(tsc~trend+seasonality)
+summary(model6)
+plot(model1,which=1:2)
+sres1<-residuals(model6)/sqrt(494.8)
+boxplot(sres1)
+plot(t,sres1)
+lines(lowess(t,sres1),col=2)
+library(nortest)
+ad.test(sres1)
+cvm.test(sres1)
+lillie.test(sres1)
+pearson.test(sres1)
+sf.test(sres1)
+```
+
+
+2. Build an appropriate SARIMA model for the same, and iterprete the fitted model interms of its IRF, ACF, PACF and η2n’s. Do the residulas of this SARIMA model satisfy all the required assumptions?                                                                             [8+8+4=20]
+
+SARIMA Model:
+```{r}
+t=1:66
+plot(t,tsc,type="n",main="Community Service",xlab="Quarters",ylab="")
+lines(t,tsc)
+points(t,tsc,pch=20)
+legend("topleft", c("Social (Observed)"), lty=c(1,1), col=c('black','blue'), bty='n', cex=1)
+acf(tsc,lag.max=40)
+pacf(tsc,lag.max=60)
+q1=tsc[seq(1,66,4)]
+q2=tsc[seq(2,66,4)]
+q3=tsc[seq(3,66,4)]
+q4=tsc[seq(4,66,4)]
+plot(c(1996,2013),range(q1),type="n",xlab="Year",ylab="Quarterly GDP",main="Quarterwise Plots")
+lines(1996:2012,q1)
+points(1996:2012,q1)
+lines(1996:2012,q2,col=2)
+points(1996:2012,q2,col=2)
+lines(1996:2011,q3,col=3)
+points(1996:2011,q3,col=3)
+lines(1996:2011,q4,col=4)
+points(1996:2011,q4,col=4)
+legend("topleft",c("Q1","Q2","Q3","Q4"),lty=c(1,1),col=1:4,bty='n', cex=1)
+```
+
+
+```{r}
+# Unit root test for quarters
+pp.test(q1)$p.value
+pp.test(q2)$p.value
+pp.test(q3)$p.value
+pp.test(q4)$p.value
+adf.test(q1)$p.value
+adf.test(q2)$p.value
+adf.test(q3)$p.value
+adf.test(q4)$p.value
+kpss.test(q1)$p.value
+kpss.test(q2)$p.value
+kpss.test(q3)$p.value
+kpss.test(q4)$p.value
+```
+```{r}
+ag<-tsc
+# seasonal difference at lag 4
+plot(diff(ag,lag=4),ylab="Seasonal Difference",main="Time Series Plot of Seasonal First Difference")
+adf.test(diff(ag,lag=4))$p.value
+pp.test(diff(ag,lag=4))$p.value
+kpss.test(diff(ag,lag=4))$p.value
+acf(diff(ag,lag=4))
+pacf(diff(ag,lag=4))
+# Ordinary difference in the seasonaaly differenced series
+plot(diff(diff(ag,lag=4)),ylab="First Difference (Seasonal+Usual)",main="Time Series Plot of the Differenced Series")
+adf.test(diff(diff(ag,lag=4)))$p.value
+pp.test(diff(diff(ag,lag=4)))$p.value
+kpss.test(diff(diff(ag,lag=4)))$p.value
+acf(diff(diff(ag,lag=4)))
+pacf(diff(diff(ag,lag=4)))
+# test for absence of serial correlation
+Box.test(diff(diff(ag,lag=4)),lag=30)
+Box.test(diff(diff(ag,lag=4)),lag=30,type="L")
+```
+
+```{r}
+# SARIMA model selected based on AIC value (least magnitude)
+model=arima(ag,order=c(0,1,1),seasonal=list(order=c(1,1,2),period=4))
+res_model=residuals(model)
+plot(res_model)
+qqnorm(res_model)
+acf(res_model)
+pacf(res_model)
+tsdiag(model)
+# Normality test for residuals
+normtest<-function(x)
+{
+  library(nortest)
+  ad<-ad.test(x)
+  s<-shapiro.test(x)
+  cvm<-cvm.test(x)
+  ll<-lillie.test(x)
+  sf<-sf.test(x)
+  df<-data.frame(Method=c(s$method,ad$method,cvm$method,ll$method,sf$metho),
+                 P.value=c(s$p.value,ad$p.value,cvm$p.value,ll$p.value,sf$p.value))
+  df
+}
+normtest(res_model)
+#Portmanteau test for residuals
+Box.test(res_model,lag=20)
+Box.test(res_model,lag=20,type="L")
+```
+```{r}
+acf(diff(tsc,lag=10))
+pacf(diff(tsc,lag=4))
+spectrum(diff(tsc,lag=4),spans=c(5,5))
+round(1/locator()$x)
+
+acf(diff(diff(tsc,lag=4)))
+pacf(diff(diff(tsc,lag=4)))
+spectrum(diff(diff(tsc,lag=4)),spans=c(5,5))
+#round(1/locator()$x)
+
+```
+```{r}
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,1,0),period=4))
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,1,0),period=4),fixed=c(NA,0))
+
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(0,1,0),period=4))
+
+
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(0,1,1),period=4))
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,1,1),period=4))
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,1,1),period=4),fixed=c(NA,0,NA))
+
+#arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,0,1),period=4))
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(0,0,1),period=4))
+
+```
+```{r}
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,0),period=4))
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,0),period=4),fixed=c(NA,0))
+
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,0),period=4))
+
+
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,1),period=4))
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,1),period=4),fixed=c(NA,0))
+
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,1),period=4))
+#arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,1),period=4),fixed=c(NA,0,NA))
+
+#arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,0,1),period=4))
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,0,1),period=4))
+```
+```{r}
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,0),period=4))
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,0),period=4),fixed=c(NA,0,NA))
+
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,1),period=4))
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,1),period=4),fixed=c(NA,NA,0,NA))
+
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,2),period=4))
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,2),period=4),fixed=c(NA,0,NA))
+
+
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,2),period=4))
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,2),period=4),fixed=c(NA,NA,NA,0))
+
+
+```
+
+```{r}
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(2,1,0),period=4))$aic
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(2,1,1),period=4))$aic
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(0,1,2),period=4))$aic
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(0,1,2),period=4),fixed=c(NA,0,NA))
+arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,1,2),period=4))$aic
+
+
+############################################
+
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,0),period=4))$aic
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,1),period=4))$aic
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,2),period=4))$aic
+arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,2),period=4))$aic
+
+```
+```{r}
+# Model Testing
+aic1<-c(arima(tsc,order=c(0,1,0),seasonal=list(order=c(0,1,0),period=4))$aic)
+aic2<-arima(tsc,order=c(0,1,0),seasonal=list(order=c(0,1,1),period=4))$aic
+aic3<-arima(tsc,order=c(0,1,0),seasonal=list(order=c(1,1,0),period=4))$aic
+aic4<-arima(tsc,order=c(0,1,0),seasonal=list(order=c(1,1,1),period=4))$aic
+aic5<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,0),period=4))$aic
+aic6<-arima(tsc,order=c(1,1,0),seasonal=list(order=c(0,1,0),period=4))$aic
+aic7<-arima(tsc,order=c(1,1,1),seasonal=list(order=c(0,1,0),period=4))$aic
+aic8<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,1),period=4))$aic
+aic9<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,0),period=4))$aic
+aic10<-arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,1,0),period=4))$aic
+aic11<-arima(tsc,order=c(1,1,0),seasonal=list(order=c(1,1,1),period=4))$aic
+aic12<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,1),period=4))$aic
+aic13<-arima(tsc,order=c(1,1,0),seasonal=list(order=c(0,1,1),period=4))$aic
+aic14<-arima(tsc,order=c(1,1,1),seasonal=list(order=c(0,1,1),period=4))$aic
+aic15<-arima(tsc,order=c(1,1,1),seasonal=list(order=c(1,1,0),period=4))$aic
+aic16<-arima(tsc,order=c(1,1,1),seasonal=list(order=c(1,1,1),period=4))$aic
+aic17<-arima(tsc,order=c(0,1,0),seasonal=list(order=c(0,1,2),period=4))$aic
+aic18<-arima(tsc,order=c(0,1,0),seasonal=list(order=c(2,1,0),period=4))$aic
+aic19<-arima(tsc,order=c(0,1,0),seasonal=list(order=c(2,1,1),period=4))$aic
+aic20<-arima(tsc,order=c(0,1,0),seasonal=list(order=c(1,1,2),period=4))$aic
+print("-------------------AIC 1:20 ------------------------")
+aic1
+aic2
+aic3
+aic4
+aic5
+aic6
+aic7
+aic8
+aic9
+aic10
+aic11
+aic12
+aic13
+aic14
+aic16
+aic17
+aic18
+aic19
+aic20
+
+aic21<-arima(tsc,order=c(0,1,0),seasonal=list(order=c(2,1,2),period=4))$aic
+aic22<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(0,1,2),period=4))$aic
+aic23<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,0),period=4))$aic
+aic24<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,1),period=4))$aic
+aic25<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(1,1,2),period=4))$aic
+aic26<-arima(tsc,order=c(0,1,1),seasonal=list(order=c(2,1,2),period=4))$aic
+aic27<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(0,1,1),period=4))$aic
+aic28<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(0,1,2),period=4))$aic
+aic29<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(1,1,0),period=4))$aic
+aic30<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(2,1,0),period=4))$aic
+aic31<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(2,1,1),period=4))$aic
+aic32<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(1,1,1),period=4))$aic
+aic33<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(1,1,2),period=4))$aic
+aic34<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(2,1,1),period=4))$aic
+aic35<-arima(tsc,order=c(2,1,0),seasonal=list(order=c(2,1,1),period=4))$aic
+aic36<-arima(tsc,order=c(2,1,0),seasonal=list(order=c(2,1,0),period=4))$aic
+aic37<-arima(tsc,order=c(2,1,0),seasonal=list(order=c(2,1,2),period=4))$aic
+aic38<-arima(tsc,order=c(2,1,0),seasonal=list(order=c(0,1,2),period=4))$aic
+aic39<-arima(tsc,order=c(2,1,0),seasonal=list(order=c(0,1,1),period=4))$aic
+aic40<-arima(tsc,order=c(2,1,0),seasonal=list(order=c(1,1,0),period=4))$aic
+print("-------------------AIC 21:40 ------------------------")
+aic21
+aic22
+aic23
+aic24
+aic25
+aic26
+aic27
+aic28
+aic29
+aic30
+aic31
+aic32
+aic33
+aic34
+aic35
+aic36
+aic37
+aic38
+aic39
+aic40
+
+
+aic41<-arima(tsc,order=c(2,1,0),seasonal=list(order=c(1,1,1),period=4))$aic
+aic42<-arima(tsc,order=c(2,1,1),seasonal=list(order=c(1,1,1),period=4))$aic
+aic43<-arima(tsc,order=c(2,1,1),seasonal=list(order=c(0,1,1),period=4))$aic
+aic44<-arima(tsc,order=c(2,1,1),seasonal=list(order=c(0,1,0),period=4))$aic
+aic45<-arima(tsc,order=c(2,1,1),seasonal=list(order=c(1,1,0),period=4))$aic
+aic46<-arima(tsc,order=c(2,1,1),seasonal=list(order=c(1,1,2),period=4))$aic
+aic47<-arima(tsc,order=c(2,1,1),seasonal=list(order=c(2,1,2),period=4))$aic
+aic48<-arima(tsc,order=c(2,1,1),seasonal=list(order=c(2,1,1),period=4))$aic
+aic49<-arima(tsc,order=c(2,1,1),seasonal=list(order=c(2,1,0),period=4))$aic
+aic50<-arima(ag,order=c(2,1,1),seasonal=list(order=c(0,1,2),period=4))$aic
+aic51<-arima(tsc,order=c(0,1,2),seasonal=list(order=c(0,1,2),period=4))$aic
+aic52<-arima(tsc,order=c(1,1,2),seasonal=list(order=c(0,1,2),period=4))$aic
+aic53<-arima(tsc,order=c(1,1,2),seasonal=list(order=c(1,1,2),period=4))$aic
+aic54<-arima(tsc,order=c(1,1,2),seasonal=list(order=c(1,1,1),period=4))$aic
+aic55<-arima(tsc,order=c(1,1,2),seasonal=list(order=c(2,1,1),period=4))$aic
+aic56<-arima(tsc,order=c(2,1,2),seasonal=list(order=c(2,1,1),period=4))$aic
+aic57<-arima(tsc,order=c(2,1,2),seasonal=list(order=c(0,1,1),period=4))$aic
+aic58<-arima(tsc,order=c(2,1,2),seasonal=list(order=c(0,1,2),period=4))$aic
+
+print("-------------------AIC 41:58 ------------------------")
+aic41
+aic42
+aic43
+aic44
+aic45
+aic46
+aic47
+aic48
+aic49
+aic50
+aic51
+aic52
+aic53
+aic54
+aic55
+aic56
+aic57
+aic58
+
+
+
+```
+Selected Model
+```{r}
+model<-arima(x = tsc, order = c(1, 1, 0), seasonal = list(order = c(0, 1, 2), period = 4), fixed = c(NA, 0, NA))
+summary(model)
+res<-residuals(model)
+plot(res)
+qqnorm(res)
+acf(res)
+pacf(res)
+tsdiag(model)
+
+adf.test(res)
+pp.test(res)
+normtest(res)
+Box.test(res,lag=20,type="L")
+BO
+```
+```{r}
+irfplot<-function (irf, s)
+ {
+ n <- length(irf)
+ plot(c(0,n+1), range(c(irf,1)), type = "n",xlab = "Time", ylab = "IRF", main = s)
+ lines(c(0,n+1),c(0,0))
+ lines(c(0,0),c(0,1))
+ for (i in 1:n)
+ lines(c(i,i), c(0, irf[i]))
+ }
+ psi<-ARMAtoMA(ar=c(-0.6363),lag.max=30)
+ par(mfrow = c(1, 2))
+ #par(oma = c(0, 4, 8, 0))
+ irfplot(psi,"IRF")
+ irfplot(cumsum(psi)+1,"Log IRF")
+```
+```{r}
+normtest()
+
+```
+```{r}
+ psi100<-ARMAtoMA( ar=c(-0.6180) ,lag.max=100)
+ #psi100
+ gamma0<-(1+sum(psi100^2))*4597
+ gamma0
+ pc2<-ARMAacf( ar=c(-0.6180), lag.max=30,pacf=T)^2
+ v<-gamma0
+ 
+ for(i in 2:31) v[i]<-v[i-1]*(1-pc2[i-1])
+ ((1-v/gamma0)*100)[-1]
+  pc2*100
+  cumsum(pc2*100)
+ ((gamma0-4597)/gamma0)*100
+ 
+pr<-predict(chosen_model,n.ahead=4)
+
+print("------------------------")
+
+for(i in 2:31) v[i]<-v[i-1]*(1-pc2[i-1])
+((1-v/gamma0)*100)[-1]
+pc2*100
+cumsum(pc2*100)
+((gamma0-5963)/gamma0)*100
+ 
+```
+
+
+3. Use the above two fitted models for finding interval forecasts for 2012-13:Q3, 2012-13:Q4, 2013-14:Q1 and 2013-14:Q2 and check against their realised values. Compare these forecasts and other diagnostics to comment on the aptness of the above two fitted models.        [4+6=10]
+
+```{r}
+regression_model<-model5
+#regression_model
+pr<-predict(regression_model,n.ahead=4)
+#pr
+f1<-predict(regression_model,data.frame(t=67,t1=67*67),interval="pred",level=0.95)
+f2<-predict(regression_model,data.frame(t=68,t1=68*68),interval="pred",level=0.95)
+f3<-predict(regression_model,data.frame(t=69,t1=69*69),interval="pred",level=0.95)
+f4<-predict(regression_model,data.frame(t=70,t1=70*70),interval="pred",level=0.95)
+f1
+f2
+f3
+f4
+f<-c(3160.637,3505.228,3356.249,3563.838)
+f6<-c(3050.873,3336.266,3314.246,3778.092)
+sarima_model<-model
+pr<-predict(sarima_model,n.ahead=4)
+pr
+ts1[67:70]
+pr$pred-2*pr$se
+pr$pred+2*pr$se
+```
+```{r}
+summary(regression_model)
+summary(sarima_model)
+
+```
+```{r}
+x=1:4
+
+SARIMA_pr<-predict(sarima_model,n.ahead=4)
+reg_pr<-predict(sarima_model,n.ahead=4)
+
+a1<-reg_pr$pred-2*reg_pr$se
+a2<-reg_pr$pred+2*reg_pr$se
+
+s1<-SARIMA_pr$pred-2*SARIMA_pr$se
+s2<-SARIMA_pr$pred+2*SARIMA_pr$se
+
+
+plot(x,ts1[67:70], type="l", col="blue", main = "Regression Model vs SARIMA model",ylim = c(3160, 4000),xlab="time",ylab="gdp")
+
+points(x,f, col="red", type="b", lty=2)
+#points(x,f6, col="yellow", type="b", lty=2)
+points(x,SARIMA_pr$pred, col="green", type="b", lty=2)
+
+
+
+legend("top", legend=c("observed value", "predicted value:Regression Model","predicted value: SARIMA"),
+       col=c("blue", "red","green"), lty=1:2, cex=0.8,
+       box.lty=0)
+
+
+```
+
+
+Note:
+
+Q1: 
+
+
+
+
+Q2: Differance: D
+    p,q : Locator
+    Locator: value=1
+    Check model different combination (1,1,0)...(1,1,1) and (0,1,0)...(2,1,0)
+    Select Model: less AIC
+    selected Model: Residual Analysis, IRF, ACF, PACF, eta^2 
+    Check: assumptions of sarima model
+    
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
